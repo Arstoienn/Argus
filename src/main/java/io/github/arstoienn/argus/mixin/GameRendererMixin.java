@@ -2,6 +2,7 @@ package io.github.arstoienn.argus.mixin;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import io.github.arstoienn.argus.ArgusConfig;
+import io.github.arstoienn.argus.PassUniforms;
 import io.github.arstoienn.argus.SecondPass;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
@@ -45,6 +46,11 @@ public class GameRendererMixin {
     @Inject(method = "render(Lnet/minecraft/client/render/RenderTickCounter;Z)V", at = @At("RETURN"))
     private void argus$renderSecondView(RenderTickCounter ticks, boolean tick, CallbackInfo ci) {
         SecondPass.afterFrame((GameRenderer) (Object) this, ticks, tick);
+    }
+
+    @Inject(method = "close", at = @At("RETURN"))
+    private void argus$closeSecondPassUniforms(CallbackInfo ci) {
+        PassUniforms.close();
     }
 
     @Inject(method = "bobView(Lnet/minecraft/client/util/math/MatrixStack;F)V", at = @At("HEAD"), cancellable = true)

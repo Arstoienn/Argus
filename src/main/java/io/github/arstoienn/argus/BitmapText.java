@@ -8,10 +8,31 @@ import org.lwjgl.opengl.GL11;
 /**
  * The status text and the mouse pointer on the second window.
  *
- * Both are drawn a cell at a time as solid squares: each cell is a scissor rectangle cleared to the
- * current colour, so neither needs a shader or a texture. Coordinates are GL's, origin bottom left.
+ * Both are drawn a cell at a time as solid squares, so neither needs a shader or a texture. On
+ * OpenGL each cell is a scissor rectangle cleared to the current colour; {@link VulkanWindow}
+ * collects the same cells and clears them its own way. Coordinates are GL's, origin bottom left.
  */
 final class BitmapText {
+    /** Fills square cells with the colour last set. */
+    interface Painter {
+        void color(float r, float g, float b);
+
+        void cell(int x, int y, int size);
+    }
+
+    private static final Painter GL = new Painter() {
+        @Override
+        public void color(float r, float g, float b) {
+            GL11.glClearColor(r, g, b, 1.0F);
+        }
+
+        @Override
+        public void cell(int x, int y, int size) {
+            GL11.glScissor(x, y, size, size);
+            GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
+        }
+    };
+
     private static final Map<Character, String[]> FONT = new HashMap<>();
 
     /** The classic arrow. X is the outline, O the fill, the tip at the top left. */
@@ -36,28 +57,40 @@ final class BitmapText {
     private BitmapText() {
     }
 
-    /** Draws the pointer with its tip at (x, y), outline first so it shows on any background. */
+    /** Draws the pointer in the current GL context. */
     static void drawCursor(int x, int y, int cell) {
         GL11.glEnable(GL11.GL_SCISSOR_TEST);
-        drawCursorLayer(x, y, cell, 'X', 0.04F, 0.04F, 0.06F);
-        drawCursorLayer(x, y, cell, 'O', 0.97F, 0.98F, 1.0F);
+        paintCursor(GL, x, y, cell);
         GL11.glDisable(GL11.GL_SCISSOR_TEST);
     }
 
-    private static void drawCursorLayer(int x, int y, int cell, char part, float r, float g, float b) {
-        GL11.glClearColor(r, g, b, 1.0F);
+    /** Draws the status lines in the current GL context. */
+    static void drawStatus(String text, int width, int height) {
+        GL11.glEnable(GL11.GL_SCISSOR_TEST);
+        paintStatus(GL, text, width, height);
+        GL11.glDisable(GL11.GL_SCISSOR_TEST);
+    }
+
+    /** Paints the pointer with its tip at (x, y), outline first so it shows on any background. */
+    static void paintCursor(Painter painter, int x, int y, int cell) {
+        paintCursorLayer(painter, x, y, cell, 'X', 0.04F, 0.04F, 0.06F);
+        paintCursorLayer(painter, x, y, cell, 'O', 0.97F, 0.98F, 1.0F);
+    }
+
+    private static void paintCursorLayer(Painter painter, int x, int y, int cell, char part, float r, float g, float b) {
+        painter.color(r, g, b);
         for (int row = 0; row < CURSOR.length; row++) {
             String line = CURSOR[row];
             for (int col = 0; col < line.length(); col++) {
                 if (line.charAt(col) == part) {
-                    fill(x + col * cell, y - (row + 1) * cell, cell);
+                    painter.cell(x + col * cell, y - (row + 1) * cell, cell);
                 }
             }
         }
     }
 
-    /** Draws the status lines in the bottom left corner, with a drop shadow, scaled to the window. */
-    static void drawStatus(String text, int width, int height) {
+    /** Paints the status lines in the bottom left corner, with a drop shadow, scaled to the window. */
+    static void paintStatus(Painter painter, String text, int width, int height) {
         if (text.isEmpty()) {
             return;
         }
@@ -67,18 +100,16 @@ final class BitmapText {
         int left = Math.max(cell, Math.round(width * 0.012F));
         int bottom = Math.round(height * 0.03F);
 
-        GL11.glEnable(GL11.GL_SCISSOR_TEST);
         for (int i = 0; i < lines.length; i++) {
             String line = lines[lines.length - 1 - i];
             int y = bottom + i * lineHeight;
-            drawLine(line, left + cell, y - cell, cell, 0.05F, 0.06F, 0.07F);
-            drawLine(line, left, y, cell, 0.96F, 0.98F, 0.98F);
+            paintLine(painter, line, left + cell, y - cell, cell, 0.05F, 0.06F, 0.07F);
+            paintLine(painter, line, left, y, cell, 0.96F, 0.98F, 0.98F);
         }
-        GL11.glDisable(GL11.GL_SCISSOR_TEST);
     }
 
-    private static void drawLine(String line, int x, int y, int cell, float r, float g, float b) {
-        GL11.glClearColor(r, g, b, 1.0F);
+    private static void paintLine(Painter painter, String line, int x, int y, int cell, float r, float g, float b) {
+        painter.color(r, g, b);
         for (int i = 0; i < line.length(); i++) {
             String[] glyph = FONT.get(line.charAt(i));
             if (glyph == null) {
@@ -88,16 +119,11 @@ final class BitmapText {
             for (int row = 0; row < 7; row++) {
                 for (int col = 0; col < 5; col++) {
                     if (glyph[row].charAt(col) == '1') {
-                        fill(glyphX + col * cell, y + (6 - row) * cell, cell);
+                        painter.cell(glyphX + col * cell, y + (6 - row) * cell, cell);
                     }
                 }
             }
         }
-    }
-
-    private static void fill(int x, int y, int size) {
-        GL11.glScissor(x, y, size, size);
-        GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
     }
 
     private static void glyph(char c, String... rows) {

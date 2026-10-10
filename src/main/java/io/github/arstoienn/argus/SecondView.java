@@ -77,8 +77,7 @@ public final class SecondView {
         Window window = mc.getWindow();
         int width = window.getFramebufferWidth();
         int height = window.getFramebufferHeight();
-        int source = Blit.texture(world);
-        if (width <= 0 || height <= 0 || source < 0) {
+        if (width <= 0 || height <= 0) {
             return null;
         }
         if (withInterface == null) {
@@ -86,7 +85,9 @@ public final class SecondView {
         } else if (withInterface.textureWidth != width || withInterface.textureHeight != height) {
             withInterface.resize(width, height);
         }
-        Blit.copy(source, world.textureWidth, world.textureHeight, Blit.texture(withInterface), width, height);
+        if (!Blit.copy(world, withInterface)) {
+            return null;
+        }
 
         // The pointer is only drawn while a screen is open; in play it is locked to the centre.
         // Its position is the one the interface uses for hovering this frame, not a fresher one

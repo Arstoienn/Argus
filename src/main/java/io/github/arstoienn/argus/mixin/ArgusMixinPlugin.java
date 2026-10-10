@@ -7,10 +7,16 @@ import org.objectweb.asm.tree.ClassNode;
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin;
 import org.spongepowered.asm.mixin.extensibility.IMixinInfo;
 
-/** Applies the mixins under {@code mixin.sodium} only when Sodium, whose classes they patch, is installed. */
+/**
+ * Applies the mixins under {@code mixin.sodium} and {@code mixin.vulkan} only when Sodium or
+ * VulkanMod, whose classes they patch, is installed.
+ */
 public class ArgusMixinPlugin implements IMixinConfigPlugin {
     @Override
     public boolean shouldApplyMixin(String targetClassName, String mixinClassName) {
+        if (mixinClassName.contains(".mixin.vulkan.")) {
+            return FabricLoader.getInstance().isModLoaded("vulkanmod");
+        }
         return !mixinClassName.contains(".mixin.sodium.") || FabricLoader.getInstance().isModLoaded("sodium");
     }
 

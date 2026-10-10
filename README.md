@@ -58,10 +58,15 @@ To run a development client:
 ./gradlew runClient
 ```
 
-The development client runs on vanilla OpenGL. To run it with Sodium:
+The development client runs on vanilla OpenGL. To run it with Sodium or with VulkanMod, which
+cannot be loaded together:
 
 ```bash
 ./gradlew runClient -Pdev_renderer=sodium
+```
+
+```bash
+./gradlew runClient -Pdev_renderer=vulkanmod
 ```
 
 `runClient` passes `--quickPlaySingleplayer 'New World'` so it loads straight into a world. The
@@ -145,6 +150,11 @@ for a spyglass: the game only zooms for one in first person, and the second view
 the perspective the main one is not. The camera, perspective, camera entity and crosshair target
 are restored afterwards, so the pass leaves no state behind.
 
+The game keeps one projection buffer, one fog buffer and one global-settings buffer, each written
+once a frame. The second pass has its own of each, swapped in while it runs, so it never writes
+over the main view's. On OpenGL that makes no difference, because a draw happens the moment it is
+issued; it matters on a backend that records draws and runs them later (see VulkanMod below).
+
 **Independent culling.** `WorldRenderer` keeps its visible-chunk lists as instance state, so a
 second camera walking them would destroy the main view's. Argus swaps in a second
 `ChunkRenderingDataPreparer`, its own visible and nearby chunk lists and its own record of where
@@ -212,8 +222,42 @@ including frames where the main camera has not moved. Run against Sodium 0.8.14 
 development client; the patch names Sodium's internal classes, so another version may need it
 adjusted.
 
-**VulkanMod is not supported in this version.** It replaces OpenGL, so there is no context for the
-second window to share. With VulkanMod installed Argus logs that and leaves the second window off.
+**VulkanMod is supported experimentally.** [VulkanMod](https://modrinth.com/mod/vulkanmod)
+replaces the OpenGL backend with Vulkan, so the main window has no OpenGL context for a second
+window to share and none of Argus's own GL calls can run. With VulkanMod installed the second
+window gets a Vulkan surface and swapchain of its own, and each frame the second view is blitted
+into it on VulkanMod's device, in a command buffer submitted after the main frame's. Four things
+in VulkanMod assume there is only one view and are handled around the second pass:
+
+- It decides whether a render target is the main window by comparing it with
+  `MinecraftClient.getFramebuffer`, which is exactly the call Argus redirects, so without a fix the
+  second view is drawn into the main window. Inside VulkanMod's command encoder that call is made
+  to return the real main framebuffer.
+- Its terrain and cloud renderers bypass the game's render passes and bind the main window
+  directly. For the duration of the second pass its `MainPass` is swapped for one that binds
+  Argus's framebuffer instead.
+- Its terrain renderer keeps one section grid, one indirect-draw buffer and one translucency sort.
+  The second camera is stopped from moving the grid, resetting the buffer or re-sorting, for the
+  same reason the vanilla culling state is kept separate.
+- It records draws during the frame and executes them when the frame ends, so anything the second
+  pass overwrites is seen by main-view draws that have not run yet. The second pass's own
+  projection, fog and global buffers cover most of that, and the main frame's commands are also
+  submitted and waited for before the second pass starts, which covers the per-frame state that
+  cannot be given a second copy. The price is that the CPU waits for the GPU to finish the main
+  view before each second pass.
+
+**Following another player is disabled on VulkanMod.** On a multiplayer server it left entities in
+the main window drawn in the wrong place for as long as the second window was on someone else, and
+that has not been reproduced in a single-player world. Until the cause is found the follow key and
+the first/third-person key only show a message when VulkanMod is installed. Following your own
+projectiles still works.
+
+Run in the development client on Windows against VulkanMod 0.6.8 for 1.21.11, and only there.
+Known gaps: the visible-section graph is rebuilt for each camera every frame, which costs more
+than the separate culling state does on OpenGL; with no world loaded the window simply keeps its
+last image, whatever "Hold last frame when you leave" says; and the patches name VulkanMod's
+internal classes, so another VulkanMod version may need them adjusted. Without VulkanMod installed
+none of this code is loaded.
 
 **Ixeris is incompatible.** It moves the game off the real main thread while still naming that
 thread "Render thread", and GLFW requires windows to be created on the main thread, so
@@ -235,19 +279,23 @@ settings file is not rewritten every few seconds in the background.
 | `SecondPass.java` | The second pass: picks the camera, draws the world, restores the game's state, presents |
 | `SecondView.java` | The world and interface framebuffers, and the render-target redirect |
 | `SecondWindow.java` | The second GLFW window: creation, presentation, fullscreen, remembered geometry |
+| `VulkanWindow.java` | The second window's surface, swapchain and presentation when VulkanMod is installed |
+| `PassUniforms.java` | The second pass's own projection, fog and global-settings buffers |
 | `CameraRig.java` | Camera placement, wall clipping and damping |
 | `Follow.java` | Follow targets: the nearest or a locked player, and your projectiles in flight |
 | `FrameBudget.java` | The frame-time throttle |
 | `WindowState.java` | Second window geometry, persisted to `config/argus-window.json` |
-| `Blit.java` | GL texture-to-texture copies |
+| `Blit.java` | Texture-to-texture copies |
 | `BitmapText.java` | Status text and the drawn mouse cursor |
 | `mixin/GameRendererMixin.java` | Runs the second pass; view bob, hurt tilt, far plane, fog distance and hands in it |
 | `mixin/WorldRendererMixin.java` | Separate culling state for the second pass |
 | `mixin/GuiRendererMixin.java` | Submits each frame's interface draws a second time, onto the second view |
 | `mixin/MinecraftClientMixin.java` | Redirects the render target |
 | `mixin/EntityHitboxDebugRendererMixin.java` | Hitboxes in the second view |
+| `mixin/RenderSystemMixin.java` | Presents the second window after VulkanMod has submitted the main frame |
 | `mixin/sodium/` | Patch to Sodium's terrain setup, applied only when it is installed |
-| `mixin/ArgusMixinPlugin.java` | Skips `mixin/sodium/` when Sodium is absent |
+| `mixin/vulkan/` | Patches to VulkanMod's command encoder and terrain renderer, applied only when it is installed |
+| `mixin/ArgusMixinPlugin.java` | Skips `mixin/sodium/` and `mixin/vulkan/` when those mods are absent |
 | `mixin/*Accessor.java` | Accessors for otherwise private state |
 
 ## License

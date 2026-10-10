@@ -5,6 +5,7 @@ import io.github.arstoienn.argus.mixin.GameOptionsAccessor;
 import io.github.arstoienn.argus.mixin.GameRendererAccessor;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
+import net.minecraft.client.gl.GlobalSettings;
 import net.minecraft.client.option.Perspective;
 import net.minecraft.client.option.TextureFilteringMode;
 import net.minecraft.client.render.Camera;
@@ -22,7 +23,8 @@ import net.minecraft.util.math.Vec3d;
  * The game's own world renderer does the drawing. For the length of the pass the camera is moved
  * and {@code MinecraftClient.getFramebuffer} is redirected to a framebuffer Argus owns, so nothing
  * in the renderer needs to know it is running twice. Everything the pass changes is put back
- * afterwards.
+ * afterwards, and the per-frame uniform buffers it would overwrite are swapped for its own
+ * ({@link PassUniforms}).
  */
 public final class SecondPass {
     /** True while the world is being drawn for the second view. */
@@ -119,6 +121,10 @@ public final class SecondPass {
         try {
             active = true;
             SecondView.redirect = target;
+            if (ArgusClient.VULKANMOD) {
+                VulkanWindow.beginSecondPass();
+            }
+            GlobalSettings globalSettings = PassUniforms.swapIn(rendererAccess);
             selfView = projectile == null && followed == null;
             applyFov(mc, rendererAccess, perspective, complementary);
 
@@ -149,7 +155,7 @@ public final class SecondPass {
                 CameraRig.overShoulder(camera, mc.player, tickProgress);
             }
 
-            rendererAccess.argus$globalSettings().set(
+            globalSettings.set(
                 mc.getWindow().getFramebufferWidth(),
                 mc.getWindow().getFramebufferHeight(),
                 mc.options.getGlintStrength().getValue(),
@@ -165,6 +171,10 @@ public final class SecondPass {
             active = false;
             selfView = false;
             selfFirstPerson = false;
+            PassUniforms.swapOut(rendererAccess);
+            if (ArgusClient.VULKANMOD) {
+                VulkanWindow.endSecondPass();
+            }
             SecondView.redirect = null;
             rendererAccess.argus$setFovMultiplier(fovMultiplier);
             rendererAccess.argus$setLastFovMultiplier(lastFovMultiplier);
