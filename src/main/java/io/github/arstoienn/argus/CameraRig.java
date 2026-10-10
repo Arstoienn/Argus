@@ -24,6 +24,8 @@ final class CameraRig {
     private static final double PROJECTILE_ROTATION_TAU = 0.04;
     /** A longer gap than this since the last frame (a pause, a hidden window) snaps instead of gliding. */
     private static final double MAX_STEP_SECONDS = 0.5;
+    /** A longer move than this in one step (a teleport, a dimension change, a far target) snaps, in blocks. */
+    private static final double SNAP_DISTANCE = 32.0;
     private static final double CLIP_MARGIN = 0.1;
 
     private static boolean smoothed;
@@ -36,11 +38,6 @@ final class CameraRig {
     private static Vec3d lastProjectileDirection = new Vec3d(0.0, 0.0, 1.0);
 
     private CameraRig() {
-    }
-
-    /** Forgets the damped position, so the next frame starts from where the camera should be. */
-    static void reset() {
-        smoothed = false;
     }
 
     /**
@@ -155,13 +152,12 @@ final class CameraRig {
         long now = System.nanoTime();
         double amount = ArgusConfig.get().cameraSmoothing();
         double dt = (now - smoothedAt) / 1.0E9;
-        double snap = ArgusConfig.get().cameraSnapDistance;
         smoothedAt = now;
 
         // Also snap across a teleport, a dimension change or a switch to a far-away target,
         // rather than sweeping across the world.
         if (amount <= 0.0 || !smoothed || dt <= 0.0 || dt > MAX_STEP_SECONDS
-                || wanted.squaredDistanceTo(x, y, z) > snap * snap) {
+                || wanted.squaredDistanceTo(x, y, z) > SNAP_DISTANCE * SNAP_DISTANCE) {
             smoothed = true;
             x = wanted.x;
             y = wanted.y;
