@@ -1,5 +1,6 @@
 package io.github.arstoienn.argus.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -13,6 +14,7 @@ import net.minecraft.client.gui.hud.InGameHud;
 import net.minecraft.client.gui.render.GuiRenderer;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.render.BufferBuilderStorage;
+import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.client.render.command.OrderedRenderCommandQueueImpl;
@@ -82,6 +84,24 @@ public class GameRendererMixin {
     @Inject(method = "close", at = @At("RETURN"))
     private void argus$closeSecondPassUniforms(CallbackInfo ci) {
         PassUniforms.close();
+    }
+
+    /**
+     * On you, the second view is drawn with the field of view the main view had this frame, not
+     * with one worked out again. The whole method is wrapped, other mods' changes to its result
+     * included, so what is remembered is the value the main view really used.
+     */
+    @WrapMethod(method = "getFov")
+    private float argus$mainFovOnYou(Camera camera, float tickProgress, boolean changingFov, Operation<Float> original) {
+        float shared = SecondPass.sharedFov(changingFov);
+        if (!Float.isNaN(shared)) {
+            return shared;
+        }
+        float fov = original.call(camera, tickProgress, changingFov);
+        if (!SecondPass.active) {
+            SecondPass.mainFovWas(changingFov, fov);
+        }
+        return fov;
     }
 
     @Inject(method = "bobView(Lnet/minecraft/client/util/math/MatrixStack;F)V", at = @At("HEAD"), cancellable = true)

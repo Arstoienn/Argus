@@ -151,12 +151,14 @@ frame rate.
 frame already computed, places its own, and calls the world renderer again.
 `MinecraftClient.getFramebuffer` is redirected for the duration of the pass, so the game draws
 into a framebuffer Argus owns without any of the renderer knowing it is running twice. View bob,
-hurt tilt and the FOV multiplier apply while the second view is on you, in first or third person,
+hurt tilt and the field of view apply while the second view is on you, in first or third person,
 since all three come from your own player; they are suppressed while it follows another player or
-a projectile. The multiplier used is the main view's own, taken as it stands that frame, except
-for a spyglass: the game only zooms for one in first person, and the second view is usually in
-the perspective the main one is not. The camera, perspective, camera entity and crosshair target
-are restored afterwards, so the pass leaves no state behind.
+a projectile. The field of view is the one the main view was drawn with that frame, taken as it
+stands rather than worked out a second time, so sprinting, a speed effect or a zoom mod changes
+both views by the same amount. The exception is a spyglass: the game only zooms for one in first
+person, and the second view is usually in the perspective the main one is not. The camera,
+perspective, camera entity and crosshair target are restored afterwards, so the pass leaves no
+state behind.
 
 The game keeps one projection buffer, one fog buffer and one global-settings buffer, each written
 once a frame. The second pass has its own of each, swapped in while it runs, so it never writes
@@ -273,6 +275,13 @@ than the separate culling state does on OpenGL; with no world loaded the window 
 last image, whatever "Hold last frame when you leave" says; and the patches name VulkanMod's
 internal classes, so another VulkanMod version may need them adjusted. Without VulkanMod installed
 none of this code is loaded.
+
+**Zoom mods zoom both views.** While the second view is on you it takes the main view's field of
+view, so zooming in the main window zooms the second window too. It is not worked out separately
+because that does not give the same answer: [Zume](https://modrinth.com/mod/zume) zooms the field
+of view only in first person and reads the perspective at that moment, which the second pass has
+changed, so one view came out zoomed and the other not whichever perspective the main window was
+in. On VulkanMod that difference made the main window flicker.
 
 **Ixeris is incompatible.** It moves the game off the real main thread while still naming that
 thread "Render thread", and GLFW requires windows to be created on the main thread, so

@@ -40,6 +40,12 @@ public final class SecondPass {
      */
     public static boolean selfFirstPerson;
 
+    /** The second view is on you and takes the main view's field of view as it stands; see {@link #sharedFov}. */
+    private static boolean sharesMainFov;
+    // The fields of view the main view was drawn with this frame, for the world and for the hands.
+    private static float mainWorldFov = Float.NaN;
+    private static float mainHandFov = Float.NaN;
+
     private SecondPass() {
     }
 
@@ -58,6 +64,35 @@ public final class SecondPass {
         // went away) must not turn up on the next one.
         SecondView.takeInterface();
         SecondView.takeHudDrawnAlone();
+        // The next frame works its own out before its second pass; an old one must not stand in.
+        mainWorldFov = Float.NaN;
+        mainHandFov = Float.NaN;
+    }
+
+    /** Called with every field of view the game works out for the main view. */
+    public static void mainFovWas(boolean world, float fov) {
+        if (world) {
+            mainWorldFov = fov;
+        } else {
+            mainHandFov = fov;
+        }
+    }
+
+    /**
+     * The main view's field of view, for the second pass to use in place of working one out, or NaN
+     * if it should work out its own.
+     *
+     * On you the two views are meant to share it. Working it out a second time does not reliably
+     * give the same answer: a zoom mod decides by the perspective, which the second pass has
+     * changed, and eases its zoom over time. Zume zooms the field of view only in first person, so
+     * one view would be zoomed and the other not, whichever perspective the main window was in. And
+     * on VulkanMod, two views drawn with different fields of view have made the main window flicker.
+     */
+    public static float sharedFov(boolean world) {
+        if (!active || !sharesMainFov) {
+            return Float.NaN;
+        }
+        return world ? mainWorldFov : mainHandFov;
     }
 
     private static void renderAndPresent(MinecraftClient mc, GameRenderer renderer, RenderTickCounter ticks) {
@@ -172,6 +207,7 @@ public final class SecondPass {
             active = false;
             selfView = false;
             selfFirstPerson = false;
+            sharesMainFov = false;
             PassUniforms.swapOut(rendererAccess);
             if (ArgusClient.VULKANMOD) {
                 VulkanWindow.endSecondPass();
@@ -196,9 +232,9 @@ public final class SecondPass {
     }
 
     /**
-     * On you, the FOV multiplier (sprinting, flying, speed, drawing a bow) is the one the main view
-     * used this frame, taken as it stands rather than recomputed: mods that change the game's own
-     * per-tick update would leave a separate copy stale. On anything else it is 1.
+     * On you, the field of view is the one the main view was drawn with this frame, whatever went
+     * into it (sprinting, flying, speed, drawing a bow, a zoom mod), taken as it stands rather than
+     * worked out again; see {@link #sharedFov}. On anything else the FOV multiplier is 1.
      *
      * The spyglass is the exception. The game only zooms for it in first person, and the second
      * view is often in the other perspective, so it gets the value its own perspective calls for.
@@ -211,6 +247,8 @@ public final class SecondPass {
             float fov = mc.player.getFovMultiplier(complementary, mc.options.getFovEffectScale().getValue().floatValue());
             renderer.argus$setFovMultiplier(fov);
             renderer.argus$setLastFovMultiplier(fov);
+        } else {
+            sharesMainFov = true;
         }
     }
 
