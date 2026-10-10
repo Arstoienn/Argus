@@ -101,9 +101,9 @@ public final class Follow {
             return;
         }
         ArgusConfig config = ArgusConfig.get();
-        config.followFirstPerson = !config.followFirstPerson;
+        config.followThirdPerson = !config.followThirdPerson;
         config.config().save();
-        ArgusClient.actionBar("Watching in " + (config.followFirstPerson ? "1st" : "3rd") + " person");
+        ArgusClient.actionBar("Watching in " + (config.followThirdPerson ? "3rd" : "1st") + " person");
     }
 
     /** The player being followed, or null when following is off or the player is out of reach. */

@@ -3,7 +3,7 @@
   "id": "argus",
   "version": "${version}",
   "name": "Argus",
-  "description": "Renders a second, independently-aimed camera in its own window — over the shoulder, locked to another player, or riding a projectile you fired. It runs on a frame-time budget and can be given a shorter render distance and a lower resolution than the main view. When the main window goes third person it flips to first person, so the two views never show the same thing twice.",
+  "description": "Renders a second, independently-aimed camera in its own window — over the shoulder, locked to another player, or riding a projectile you fired. It runs on a frame-time budget and can be given a shorter render distance and a lower resolution than the main view. It can also flip to first person whenever the main window goes third person, so the two views never show the same thing twice.",
   "authors": ["Arstoien"],
   "contact": {
     "sources": "https://github.com/Arstoienn/Argus",

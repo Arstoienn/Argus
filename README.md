@@ -11,8 +11,8 @@ than the main view. It is throttled against a share of frame time, so the cost o
 is bounded rather than paid in full every frame.
 
 The camera can sit over your shoulder, lock onto another player, or ride a projectile you fired.
-When the main window is put into third person the second window flips to first person instead, so
-the two views never show the same thing twice.
+With Complementary view on, putting the main window into third person flips the second window to
+first person instead, so the two views never show the same thing twice.
 
 ## Features
 
@@ -23,11 +23,12 @@ the two views never show the same thing twice.
   animation drawn
 - Automatic tracking of your own arrows, tridents and ender pearls while they are in the air,
   handed back to the previous target when they land
-- Complementary perspective: the second window shows first person while the main window is in
+- Complementary view (opt-in): the second window shows first person while the main window is in
   third person, restoring the near field and the hand animations that third person costs you
 - Frame-time budget, a shorter render distance and a lower resolution for the second view
-- The interface replayed over the second view — hotbar, health, chat, open screens and a drawn
-  cursor — so the second window is a complete picture of the session for recording
+- The interface replayed over the second view (opt-in) — hotbar, health, chat, and optionally open
+  screens with a drawn cursor — so the second window is a complete picture of the session for
+  recording
 - Entity hitboxes in the second view when F3+B is on, including your own
 - Frame-rate-independent camera damping with a snap distance for teleports and dimension changes
 - Settings screen through WalksyLib, reachable from Mod Menu
@@ -103,11 +104,11 @@ Stored in `config/argus.json`, edited through the settings screen.
 
 | Option | Default | What it does |
 |---|---|---|
-| Flip to first person | on | With the main window in third person, the second window shows first person |
+| Complementary view | off | With the main window in third person, the second window shows first person |
 | Follow projectiles | on | Follows your arrows, tridents and ender pearls while they fly |
-| Follow from their eyes | off | Watches a followed player in first person instead of from behind |
-| HUD | on | Shows the hotbar, health and chat on the second window |
-| Menus | on | Also shows menus you open, like the inventory, with the pointer; needs HUD |
+| 3rd POV | on | Watches a followed player from behind; off watches from their eyes |
+| HUD | off | Shows the hotbar, health and chat on the second window |
+| Menus | off | Also shows menus you open, like the inventory, with the pointer; needs HUD |
 | Hitboxes | on | Shows F3+B hitboxes on the second window too |
 | Status text | on | A small label saying what the second window is showing |
 | Keep last frame | on | Keeps the last picture after you leave a world |
