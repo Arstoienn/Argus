@@ -23,6 +23,10 @@ import org.lwjgl.opengl.GLCapabilities;
  * main context can be read in its own. Each frame is copied into a texture Argus owns and drawn
  * from there; that copy is also what lets the window keep showing its last frame after the world,
  * and the game's framebuffers with it, have gone.
+ *
+ * With VulkanMod installed there is no OpenGL context to share. The window is then created without
+ * one and {@link VulkanWindow} presents to it; the window itself (its title, position, fullscreen
+ * and hiding) is still handled here.
  */
 final class SecondWindow {
     private static final String VERTEX_SHADER = """
@@ -130,6 +134,11 @@ final class SecondWindow {
 
     /** Presents a framebuffer, with the drawn pointer over it if {@code cursor} is not null. */
     static void present(Framebuffer source, SecondView.Cursor cursor) {
+        if (ArgusClient.VULKANMOD) {
+            VulkanWindow.queue(source, ArgusConfig.get().showStatusText ? status : "", cursor);
+            rememberGeometry();
+            return;
+        }
         int texture = Blit.texture(source);
         if (texture < 0) {
             presentBlank();
@@ -147,7 +156,10 @@ final class SecondWindow {
     }
 
     static void presentBlank() {
-        draw(0, null);
+        // On VulkanMod the swapchain keeps showing what was presented last; there is nothing to draw.
+        if (!ArgusClient.VULKANMOD) {
+            draw(0, null);
+        }
     }
 
     static boolean hasHeldFrame() {
@@ -156,13 +168,14 @@ final class SecondWindow {
 
     /** With no world to draw: the last frame if the setting keeps it, otherwise a blank window. */
     static void presentHeld() {
-        draw(hasHeldFrame() ? frame : 0, null);
+        if (!ArgusClient.VULKANMOD) {
+            draw(hasHeldFrame() ? frame : 0, null);
+        }
     }
 
     private static void create() {
-        if (FabricLoader.getInstance().isModLoaded("vulkanmod")) {
-            failed = true;
-            ArgusClient.LOGGER.error("[argus] VulkanMod is installed, which this version does not support yet — second window disabled");
+        if (ArgusClient.VULKANMOD) {
+            createForVulkan();
             return;
         }
 
@@ -196,16 +209,7 @@ final class SecondWindow {
             return;
         }
         ArgusClient.LOGGER.info("[argus] second window created (handle={})", handle);
-
-        if (state.windowX >= 0 && state.windowY >= 0) {
-            GLFW.glfwSetWindowPos(handle, state.windowX, state.windowY);
-        }
-        keyCallback = GLFWKeyCallback.create((window, key, scancode, action, mods) -> {
-            if (key == GLFW.GLFW_KEY_F11 && action == GLFW.GLFW_PRESS) {
-                toggleFullscreen();
-            }
-        });
-        GLFW.glfwSetKeyCallback(handle, keyCallback);
+        placeAndListen();
 
         // Programs are shared between the two contexts; vertex arrays are not, so that one is made
         // in the window's own context.
@@ -218,6 +222,47 @@ final class SecondWindow {
         GLFW.glfwMakeContextCurrent(mainHandle);
         GL.setCapabilities(mainCaps);
         GLFW.glfwShowWindow(handle);
+    }
+
+    /** The window for VulkanMod: no client API, and a Vulkan surface in place of a GL context. */
+    private static void createForVulkan() {
+        GLFW.glfwDefaultWindowHints();
+        GLFW.glfwWindowHint(GLFW.GLFW_VISIBLE, GLFW.GLFW_FALSE);
+        GLFW.glfwWindowHint(GLFW.GLFW_FOCUS_ON_SHOW, GLFW.GLFW_FALSE);
+        GLFW.glfwWindowHint(GLFW.GLFW_CLIENT_API, GLFW.GLFW_NO_API);
+        WindowState state = WindowState.current;
+        handle = GLFW.glfwCreateWindow(state.windowWidth, state.windowHeight, "Argus", 0L, 0L);
+        if (handle == 0L) {
+            failed = true;
+            ArgusClient.LOGGER.error("[argus] glfwCreateWindow failed — second window disabled (VulkanMod)");
+            return;
+        }
+        try {
+            VulkanWindow.init(handle);
+        } catch (RuntimeException e) {
+            failed = true;
+            ArgusClient.LOGGER.error("[argus] could not set up Vulkan for the second window — second window disabled", e);
+            GLFW.glfwDestroyWindow(handle);
+            handle = 0L;
+            return;
+        }
+        ArgusClient.LOGGER.info("[argus] second window created on VulkanMod (handle={})", handle);
+        placeAndListen();
+        GLFW.glfwShowWindow(handle);
+    }
+
+    /** Puts a new window where the last one was and gives it the F11 key. */
+    private static void placeAndListen() {
+        WindowState state = WindowState.current;
+        if (state.windowX >= 0 && state.windowY >= 0) {
+            GLFW.glfwSetWindowPos(handle, state.windowX, state.windowY);
+        }
+        keyCallback = GLFWKeyCallback.create((window, key, scancode, action, mods) -> {
+            if (key == GLFW.GLFW_KEY_F11 && action == GLFW.GLFW_PRESS) {
+                toggleFullscreen();
+            }
+        });
+        GLFW.glfwSetKeyCallback(handle, keyCallback);
     }
 
     private static void resizeFrame(int width, int height) {

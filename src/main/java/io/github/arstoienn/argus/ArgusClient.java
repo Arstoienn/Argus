@@ -17,6 +17,12 @@ import org.slf4j.LoggerFactory;
 public final class ArgusClient implements ClientModInitializer {
     public static final String MOD_ID = "argus";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
+    /**
+     * VulkanMod replaces the rendering backend, so the main window has no OpenGL context. The
+     * second window is then created, filled and presented through {@link VulkanWindow} and the
+     * game's own rendering API, and none of the code that calls GL directly may run.
+     */
+    public static final boolean VULKANMOD = FabricLoader.getInstance().isModLoaded("vulkanmod");
 
     /** Groups the keys under an "Argus" heading in the Controls screen. */
     private static final KeyBinding.Category CATEGORY = KeyBinding.Category.create(Identifier.of(MOD_ID, "second_view"));

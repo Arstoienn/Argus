@@ -12,7 +12,17 @@ base {
 // The dev client runs on vanilla OpenGL unless told otherwise:
 //   ./gradlew runClient
 //   ./gradlew runClient -Pdev_renderer=sodium
+//   ./gradlew runClient -Pdev_renderer=vulkanmod
+// Sodium and VulkanMod both replace the terrain renderer and cannot be loaded together.
 def devRenderer = findProperty('dev_renderer') ?: 'vanilla'
+
+def lwjglNatives = {
+	def os = System.getProperty('os.name').toLowerCase()
+	def arm = System.getProperty('os.arch').contains('aarch64')
+	if (os.contains('win')) return 'natives-windows'
+	if (os.contains('mac')) return arm ? 'natives-macos-arm64' : 'natives-macos'
+	return 'natives-linux'
+}()
 
 loom {
 	runs {
@@ -46,11 +56,24 @@ dependencies {
 
 	modImplementation "maven.modrinth:walksylib:${project.walksylib_version}"
 
-	// Sodium is not a dependency of the built jar. It is compiled against for its patch, which is
-	// only applied when Sodium is installed.
+	// Sodium and VulkanMod are not dependencies of the built jar. They are compiled against for
+	// their patches, which are only applied when the mod they patch is installed.
 	modCompileOnly "maven.modrinth:sodium:${project.sodium_version}"
+	modCompileOnly "maven.modrinth:vulkanmod:${project.vulkanmod_version}"
+	compileOnly "org.lwjgl:lwjgl-vulkan:${project.lwjgl_version}"
 	if (devRenderer == 'sodium') {
 		modLocalRuntime "maven.modrinth:sodium:${project.sodium_version}"
+	}
+	if (devRenderer == 'vulkanmod') {
+		modLocalRuntime "maven.modrinth:vulkanmod:${project.vulkanmod_version}"
+		// VulkanMod ships these inside its jar, where Fabric Loader finds them in a real install.
+		// The dev client does not unpack nested jars onto its classpath, so name them here.
+		['lwjgl-vulkan', 'lwjgl-vma', 'lwjgl-shaderc'].each {
+			localRuntime "org.lwjgl:${it}:${project.lwjgl_version}"
+		}
+		['lwjgl-vma', 'lwjgl-shaderc'].each {
+			localRuntime "org.lwjgl:${it}:${project.lwjgl_version}:${lwjglNatives}"
+		}
 	}
 }
 

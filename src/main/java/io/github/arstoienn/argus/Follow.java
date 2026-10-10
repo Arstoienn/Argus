@@ -28,6 +28,7 @@ public final class Follow {
     // make the camera flick back and forth.
     private static final double NEAREST_SWITCH_RATIO = 0.64;
     private static final long NEAREST_SWITCH_NS = 1_500_000_000L;
+    private static final String UNAVAILABLE = "Following other players is disabled on VulkanMod";
 
     private static Mode mode = Mode.OFF;
     private static UUID locked;
@@ -41,7 +42,21 @@ public final class Follow {
     private Follow() {
     }
 
+    /**
+     * Whether other players can be followed. Not on VulkanMod: on a multiplayer server it left the
+     * main window's entities drawn in the wrong place for as long as the second view was on
+     * someone else, and that has not been reproduced in a single-player world to find out why.
+     * Your own projectiles are still followed there.
+     */
+    static boolean available() {
+        return !ArgusClient.VULKANMOD;
+    }
+
     static void pressFollow(MinecraftClient mc) {
+        if (!available()) {
+            ArgusClient.actionBar(UNAVAILABLE);
+            return;
+        }
         if (mc.world == null || mc.player == null) {
             return;
         }
@@ -81,6 +96,10 @@ public final class Follow {
     }
 
     static void togglePerspective() {
+        if (!available()) {
+            ArgusClient.actionBar(UNAVAILABLE);
+            return;
+        }
         ArgusConfig config = ArgusConfig.get();
         config.followFirstPerson = !config.followFirstPerson;
         config.config().save();
@@ -89,7 +108,7 @@ public final class Follow {
 
     /** The player being followed, or null when following is off or the player is out of reach. */
     static PlayerEntity player(MinecraftClient mc) {
-        if (mc.world == null || mc.player == null) {
+        if (mc.world == null || mc.player == null || !available()) {
             return null;
         }
         return switch (mode) {
