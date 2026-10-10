@@ -97,53 +97,47 @@ from whatever it was on and gives it back when the projectile lands.
 
 ## Settings
 
-Stored in `config/argus.json`, edited through the settings screen. Every option carries a full
-description there; the tables below give the defaults and ranges.
+Stored in `config/argus.json`, edited through the settings screen.
+
+### View
+
+| Option | Default | What it does |
+|---|---|---|
+| Flip to first person | on | With the main window in third person, the second window shows first person |
+| Follow projectiles | on | Follows your arrows, tridents and ender pearls while they fly |
+| Follow from their eyes | off | Watches a followed player in first person instead of from behind |
+| HUD | on | Shows the hotbar, health and chat on the second window |
+| Menus | on | Also shows menus you open, like the inventory, with the pointer; needs HUD |
+| Hitboxes | on | Shows F3+B hitboxes on the second window too |
+| Status text | on | A small label saying what the second window is showing |
+| Keep last frame | on | Keeps the last picture after you leave a world |
 
 ### Camera
 
 | Option | Default | Range |
 |---|---|---|
-| Complementary view | on | |
-| Camera smoothing | on | |
-| Smoothing amount | 50% | 0–100% |
-| Snap distance | 32 | 1–256 blocks |
-| Follow distance | 4.0 | 1.0–12.0 blocks |
-| Shoulder offset | 0.5 | −2.0–2.0 blocks, negative is over the left shoulder |
+| Distance | 4.0 | 1.0–12.0 blocks behind |
+| Shoulder offset | 0.5 | −2.0–2.0 blocks, negative is the left shoulder |
 | Height offset | 0.3 | −1.0–1.5 blocks, measured along world up |
-| Follow your projectiles | on | |
-| First-person follow | off | |
+| Smoothing % | 50 | 0–100, `0` is off |
+
+The camera jumps instead of gliding when it would have to move more than 32 blocks at once, such
+as on a teleport or a dimension change.
 
 ### Performance
 
 | Option | Default | Range |
 |---|---|---|
-| Frame-time budget % | 25 | 0–75, `0` disables the throttle |
-| Render distance (chunks) | 0 | 0–32, `0` means the same as the main view; it can only shorten, so a value above the main view's does nothing |
+| Frame budget % | 25 | 0–75, `0` is no limit |
+| Render distance | 0 | 0–32 chunks, `0` matches the main window; it can only be shorter |
 | Resolution % | 100 | 10–100, of the main window's resolution |
+| Vsync | off | |
 
 Resolution is pure fill rate and is the cheapest of the three to turn down. It applies to the
 world only; the interface on the second view is always drawn at the main window's resolution.
 Render distance is the largest saving on the GPU. The budget is what protects the main frame rate.
-
-### Behaviour
-
-| Option | Default |
-|---|---|
-| Interface on the second view | on |
-| Screens on the second view | on |
-| Show status text | on |
-| Show hitboxes | on |
-| Hold last frame when you leave | on |
-| Second window vsync | off |
-
-Screens on the second view off keeps the HUD on the second window but leaves the screens you open
-(the inventory, chat, the pause menu) and the drawn pointer off it, so a recording shows the game
-rather than your menus.
-
-Vsync on the second window is off by default because the buffer swap happens on the render thread,
-so turning it on makes that thread wait for the second window's vblank every frame and costs main
-frame rate.
+Vsync is off by default because the buffer swap happens on the render thread, so turning it on
+makes that thread wait for the second window's vblank every frame and costs main frame rate.
 
 ## How it works
 
@@ -210,7 +204,7 @@ one the interface was drawn with that frame, so it sits on whatever the interfac
 hovered.
 
 The HUD and an open screen are built into one picture before anything is drawn, so a replay
-cannot leave the screen out. With Screens on the second view off, the HUD goes to the second view
+cannot leave the screen out. With Menus off, the HUD goes to the second view
 on its own instead: as soon as it is built and before the screen is added, it is drawn there, then
 built again for the main window, and the full replay is skipped. The HUD is therefore built twice
 on frames where a screen is open, and only then.
@@ -272,7 +266,7 @@ Run in the development client against VulkanMod 0.6.8 for 1.21.11 on Windows, an
 through MoltenVK.
 Known gaps: the visible-section graph is rebuilt for each camera every frame, which costs more
 than the separate culling state does on OpenGL; with no world loaded the window simply keeps its
-last image, whatever "Hold last frame when you leave" says; and the patches name VulkanMod's
+last image, whatever "Keep last frame" says; and the patches name VulkanMod's
 internal classes, so another VulkanMod version may need them adjusted. Without VulkanMod installed
 none of this code is loaded.
 
