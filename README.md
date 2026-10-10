@@ -21,7 +21,7 @@ first person instead, so the two views never show the same thing twice.
   in by walls so it never ends up inside a block
 - Follow another player, either from behind or from their own eyes, with their hands and swing
   animation drawn
-- Automatic tracking of your own arrows, tridents and ender pearls while they are in the air,
+- Automatic tracking of your own arrows, spectral arrows, tridents and ender pearls while they are in the air,
   handed back to the previous target when they land
 - Complementary view (opt-in): the second window shows first person while the main window is in
   third person, restoring the near field and the hand animations that third person costs you
@@ -104,14 +104,19 @@ Stored in `config/argus.json`, edited through the settings screen.
 
 | Option | Default | What it does |
 |---|---|---|
-| Complementary view | off | With the main window in third person, the second window shows first person |
-| Follow projectiles | on | Follows your arrows, tridents and ender pearls while they fly |
-| 3rd POV | on | Watches a followed player from behind; off watches from their eyes |
-| HUD | off | Shows the hotbar, health and chat on the second window |
-| Menus | off | Also shows menus you open, like the inventory, with the pointer; needs HUD |
-| Hitboxes | on | Shows F3+B hitboxes on the second window too |
-| Status text | on | A small label saying what the second window is showing |
-| Keep last frame | on | Keeps the last picture after you leave a world |
+| Complementary view | off | Displays a first-person perspective in the second window while the main window is in third person |
+| Follow projectiles | on | Follows arrows, tridents and ender pearls launched by the player (see below) |
+| Third-person follow | on | Views a followed player from behind; when disabled, the view is taken from the player's eyes |
+| HUD | off | Displays the heads-up display, including the hotbar, health and chat, in the second window |
+| Menus | off | Displays open menus, such as the inventory, in the second window, together with the mouse pointer; requires HUD |
+| Hitboxes | on | Displays entity hitboxes in the second window whenever they are enabled with F3+B |
+| Status text | on | Displays a label in the second window indicating what it is currently showing |
+| Keep last frame | on | Retains the last rendered frame in the second window after leaving a world |
+
+Follow projectiles applies to arrows (including tipped arrows and those fired from a crossbow),
+spectral arrows, tridents and ender pearls launched by the player, until they land or stick in a
+block. Snowballs, eggs, splash and lingering potions, bottles o' enchanting, wind charges, firework
+rockets and fishing bobbers are not followed, nor are projectiles launched by anyone else.
 
 ### Camera
 
