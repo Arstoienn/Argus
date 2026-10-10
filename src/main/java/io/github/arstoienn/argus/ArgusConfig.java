@@ -17,11 +17,11 @@ public final class ArgusConfig implements WalksyLibConfig {
     private static final ArgusConfig INSTANCE = new ArgusConfig();
 
     // View
-    public boolean mirrorPerspective = true;
+    public boolean mirrorPerspective = false;
     public boolean followProjectiles = true;
-    public boolean followFirstPerson = false;
-    public boolean secondViewHud = true;
-    public boolean secondViewScreens = true;
+    public boolean followThirdPerson = true;
+    public boolean secondViewHud = false;
+    public boolean secondViewScreens = false;
     public boolean showHitboxes = true;
     public boolean showStatusText = true;
     public boolean freezeLastFrame = true;
@@ -62,15 +62,15 @@ public final class ArgusConfig implements WalksyLibConfig {
     public LocalConfig define() {
         OptionGroup view = OptionGroup.createBuilder("View")
             .setExpanded(true)
-            .addOption(toggle("Flip to first person", () -> mirrorPerspective, true, v -> mirrorPerspective = v,
+            .addOption(toggle("Complementary view", () -> mirrorPerspective, false, v -> mirrorPerspective = v,
                 "When the main window is in third person, show first person here."))
             .addOption(toggle("Follow projectiles", () -> followProjectiles, true, v -> followProjectiles = v,
                 "Follow your arrows, tridents and ender pearls while they fly."))
-            .addOption(toggle("Follow from their eyes", () -> followFirstPerson, false, v -> followFirstPerson = v,
-                "Watch a followed player in first person instead of from behind."))
-            .addOption(toggle("HUD", () -> secondViewHud, true, v -> secondViewHud = v,
+            .addOption(toggle("3rd POV", () -> followThirdPerson, true, v -> followThirdPerson = v,
+                "Watch a followed player from behind. Off watches from their eyes."))
+            .addOption(toggle("HUD", () -> secondViewHud, false, v -> secondViewHud = v,
                 "Show the hotbar, health and chat here."))
-            .addOption(BooleanOption.createBuilder("Menus", () -> secondViewScreens, true, v -> secondViewScreens = v)
+            .addOption(BooleanOption.createBuilder("Menus", () -> secondViewScreens, false, v -> secondViewScreens = v)
                 .availability(() -> secondViewHud, "Turn HUD on first.")
                 .description(text("Also show menus you open, like the inventory, with the pointer."))
                 .build())

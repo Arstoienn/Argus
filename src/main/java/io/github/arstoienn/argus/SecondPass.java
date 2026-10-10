@@ -170,7 +170,7 @@ public final class SecondPass {
                 options.argus$setPerspective(Perspective.THIRD_PERSON_BACK);
                 renderer.updateCamera(ticks);
                 CameraRig.behindProjectile(camera, projectile, tickProgress);
-            } else if (followed != null && ArgusConfig.get().followFirstPerson) {
+            } else if (followed != null && !ArgusConfig.get().followThirdPerson) {
                 mc.setCameraEntity(followed);
                 options.argus$setPerspective(Perspective.FIRST_PERSON);
                 renderer.updateCamera(ticks);
@@ -258,7 +258,7 @@ public final class SecondPass {
         }
         if (followed != null) {
             String name = followed.getName().getString();
-            String person = ArgusConfig.get().followFirstPerson ? "1st person" : "3rd person";
+            String person = ArgusConfig.get().followThirdPerson ? "3rd person" : "1st person";
             return (Follow.showNearestLabel() ? "closest player\n" + name : name) + "\n" + person;
         }
         boolean complementary = ArgusConfig.get().mirrorPerspective && !mc.options.getPerspective().isFirstPerson();
