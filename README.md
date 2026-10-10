@@ -69,6 +69,9 @@ cannot be loaded together:
 ./gradlew runClient -Pdev_renderer=vulkanmod
 ```
 
+macOS has no system Vulkan loader. For the VulkanMod run, the build extracts MoltenVK from LWJGL's
+natives and points LWJGL at it, so nothing needs to be installed.
+
 `runClient` passes `--quickPlaySingleplayer 'New World'` so it loads straight into a world. The
 second window only opens once a world is loaded, so there is nothing to see on the title screen.
 
@@ -252,7 +255,8 @@ that has not been reproduced in a single-player world. Until the cause is found 
 the first/third-person key only show a message when VulkanMod is installed. Following your own
 projectiles still works.
 
-Run in the development client on Windows against VulkanMod 0.6.8 for 1.21.11, and only there.
+Run in the development client against VulkanMod 0.6.8 for 1.21.11 on Windows, and on macOS
+through MoltenVK.
 Known gaps: the visible-section graph is rebuilt for each camera every frame, which costs more
 than the separate culling state does on OpenGL; with no world loaded the window simply keeps its
 last image, whatever "Hold last frame when you leave" says; and the patches name VulkanMod's

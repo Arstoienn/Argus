@@ -24,11 +24,26 @@ def lwjglNatives = {
 	return 'natives-linux'
 }()
 
+// macOS has no system Vulkan loader, so VulkanMod needs MoltenVK. LWJGL ships it in the
+// lwjgl-vulkan natives jar but does not find it on the dev classpath; it is extracted and
+// passed to LWJGL by absolute path instead.
+def needsMoltenVK = devRenderer == 'vulkanmod' && System.getProperty('os.name').toLowerCase().contains('mac')
+def moltenVKDir = layout.buildDirectory.dir('moltenvk')
+
+configurations {
+	moltenVK {
+		canBeConsumed = false
+	}
+}
+
 loom {
 	runs {
 		client {
 			// The second window only opens once a world is loaded, so go straight into one.
 			programArgs '--quickPlaySingleplayer', 'New World'
+			if (needsMoltenVK) {
+				vmArg "-Dorg.lwjgl.vulkan.libname=${moltenVKDir.get().file('libMoltenVK.dylib').asFile.absolutePath}"
+			}
 		}
 	}
 }
@@ -74,6 +89,23 @@ dependencies {
 		['lwjgl-vma', 'lwjgl-shaderc'].each {
 			localRuntime "org.lwjgl:${it}:${project.lwjgl_version}:${lwjglNatives}"
 		}
+		if (needsMoltenVK) {
+			moltenVK "org.lwjgl:lwjgl-vulkan:${project.lwjgl_version}:${lwjglNatives}"
+		}
+	}
+}
+
+def extractMoltenVK = tasks.register('extractMoltenVK', Sync) {
+	from { configurations.moltenVK.collect { zipTree(it) } }
+	include '**/libMoltenVK.dylib'
+	eachFile { path = name }
+	includeEmptyDirs = false
+	into moltenVKDir
+}
+
+tasks.matching { it.name == 'runClient' }.configureEach {
+	if (needsMoltenVK) {
+		dependsOn extractMoltenVK
 	}
 }
 
