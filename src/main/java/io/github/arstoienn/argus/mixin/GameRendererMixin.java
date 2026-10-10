@@ -1,16 +1,23 @@
 package io.github.arstoienn.argus.mixin;
 
+import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
+import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.blaze3d.systems.RenderSystem;
 import io.github.arstoienn.argus.ArgusConfig;
 import io.github.arstoienn.argus.PassUniforms;
 import io.github.arstoienn.argus.SecondPass;
+import io.github.arstoienn.argus.SecondView;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.gui.hud.InGameHud;
+import net.minecraft.client.gui.render.GuiRenderer;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.render.BufferBuilderStorage;
 import net.minecraft.client.render.GameRenderer;
 import net.minecraft.client.render.RenderTickCounter;
 import net.minecraft.client.render.command.OrderedRenderCommandQueueImpl;
 import net.minecraft.client.render.command.RenderDispatcher;
+import net.minecraft.client.render.fog.FogRenderer;
 import net.minecraft.client.render.item.HeldItemRenderer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.item.ItemStack;
@@ -42,10 +49,34 @@ public class GameRendererMixin {
     @Shadow
     @Final
     public HeldItemRenderer firstPersonRenderer;
+    @Shadow
+    @Final
+    private GuiRenderer guiRenderer;
+    @Shadow
+    @Final
+    private FogRenderer fogRenderer;
 
     @Inject(method = "render(Lnet/minecraft/client/render/RenderTickCounter;Z)V", at = @At("RETURN"))
     private void argus$renderSecondView(RenderTickCounter ticks, boolean tick, CallbackInfo ci) {
         SecondPass.afterFrame((GameRenderer) (Object) this, ticks, tick);
+    }
+
+    /**
+     * With screens left off the second view, the HUD goes there on its own: as soon as it is built,
+     * before the open screen is added to the same picture, it is drawn onto the second view, then
+     * built again for the main window.
+     */
+    @WrapOperation(
+        method = "render(Lnet/minecraft/client/render/RenderTickCounter;Z)V",
+        at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/hud/InGameHud;render(Lnet/minecraft/client/gui/DrawContext;Lnet/minecraft/client/render/RenderTickCounter;)V"))
+    private void argus$hudWithoutScreen(InGameHud hud, DrawContext context, RenderTickCounter ticks, Operation<Void> original) {
+        original.call(hud, context, ticks);
+        MinecraftClient mc = MinecraftClient.getInstance();
+        boolean screenComing = mc.currentScreen != null && mc.getOverlay() == null;
+        if (screenComing && !ArgusConfig.get().secondViewScreens && SecondView.wantsInterface()
+                && SecondView.drawHudAlone(this.guiRenderer, this.fogRenderer.getFogBuffer(FogRenderer.FogType.NONE))) {
+            original.call(hud, context, ticks);
+        }
     }
 
     @Inject(method = "close", at = @At("RETURN"))

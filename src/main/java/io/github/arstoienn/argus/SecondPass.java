@@ -57,6 +57,7 @@ public final class SecondPass {
         // An interface drawn this frame and not presented (the window was just hidden, the world
         // went away) must not turn up on the next one.
         SecondView.takeInterface();
+        SecondView.takeHudDrawnAlone();
     }
 
     private static void renderAndPresent(MinecraftClient mc, GameRenderer renderer, RenderTickCounter ticks) {

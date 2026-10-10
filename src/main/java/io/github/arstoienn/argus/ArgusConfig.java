@@ -34,6 +34,7 @@ public final class ArgusConfig implements WalksyLibConfig {
 
     // Behaviour
     public boolean secondViewHud = true;
+    public boolean secondViewScreens = true;
     public boolean showStatusText = true;
     public boolean showHitboxes = true;
     public boolean freezeLastFrame = true;
@@ -205,6 +206,18 @@ public final class ArgusConfig implements WalksyLibConfig {
                         + "it ticks twice and it costs almost nothing.\n"
                         + "The game draws no cursor of its own - the one over the main window\n"
                         + "belongs to the operating system - so Argus draws one to match."))
+                .build())
+            .addOption(BooleanOption.createBuilder("Screens on the second view",
+                    () -> secondViewScreens, true, v -> secondViewScreens = v)
+                .availability(() -> secondViewHud, "Turn Interface on the second view on first.")
+                .description(OptionDescription.ofOrderedString(() ->
+                    "Show the screens you open - the inventory, chests, chat, the pause\n"
+                        + "menu - on the second view too, with the drawn mouse pointer.\n"
+                        + "Off keeps the HUD there but leaves screens out, so a recording of the\n"
+                        + "second window shows the game and not your menus.\n"
+                        + "The HUD and an open screen are built as one picture, so with this off\n"
+                        + "the HUD is built twice a frame while a screen is open: once for each\n"
+                        + "window."))
                 .build())
             .addOption(BooleanOption.createBuilder("Show status text",
                     () -> showStatusText, true, v -> showStatusText = v)
