@@ -1,0 +1,73 @@
+plugins {
+	id 'fabric-loom' version '1.17.18'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+// The dev client runs on vanilla OpenGL unless told otherwise:
+//   ./gradlew runClient
+//   ./gradlew runClient -Pdev_renderer=sodium
+def devRenderer = findProperty('dev_renderer') ?: 'vanilla'
+
+loom {
+	runs {
+		client {
+			// The second window only opens once a world is loaded, so go straight into one.
+			programArgs '--quickPlaySingleplayer', 'New World'
+		}
+	}
+}
+
+repositories {
+	mavenCentral()
+	exclusiveContent {
+		forRepository {
+			maven {
+				name = 'Modrinth'
+				url = uri('https://api.modrinth.com/maven')
+			}
+		}
+		filter {
+			includeGroup 'maven.modrinth'
+		}
+	}
+}
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
+
+	modImplementation "maven.modrinth:walksylib:${project.walksylib_version}"
+
+	// Sodium is not a dependency of the built jar. It is compiled against for its patch, which is
+	// only applied when Sodium is installed.
+	modCompileOnly "maven.modrinth:sodium:${project.sodium_version}"
+	if (devRenderer == 'sodium') {
+		modLocalRuntime "maven.modrinth:sodium:${project.sodium_version}"
+	}
+}
+
+processResources {
+	inputs.property 'version', project.version
+	filesMatching('fabric.mod.json') {
+		expand 'version': project.version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.release = 21
+	it.options.encoding = 'UTF-8'
+}
+
+java {
+	withSourcesJar()
+	sourceCompatibility = JavaVersion.VERSION_21
+	targetCompatibility = JavaVersion.VERSION_21
+}

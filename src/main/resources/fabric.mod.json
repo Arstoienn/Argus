@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "argus",
+  "version": "${version}",
+  "name": "Argus",
+  "description": "Renders a second, independently-aimed camera in its own window — over the shoulder, locked to another player, or riding a projectile you fired. It runs on a frame-time budget and can be given a shorter render distance and a lower resolution than the main view. When the main window goes third person it flips to first person, so the two views never show the same thing twice.",
+  "authors": ["Arstoien"],
+  "contact": {
+    "sources": "https://github.com/Arstoienn/Argus",
+    "issues": "https://github.com/Arstoienn/Argus/issues"
+  },
+  "license": "MIT",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["io.github.arstoienn.argus.ArgusClient"],
+    "walksylib": ["io.github.arstoienn.argus.ArgusApi"]
+  },
+  "mixins": [
+    {
+      "config": "argus.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "fabric-api": "*",
+    "walksylib": "*",
+    "minecraft": "~1.21.11",
+    "java": ">=21"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "required": true,
+  "package": "io.github.arstoienn.argus.mixin",
+  "plugin": "io.github.arstoienn.argus.mixin.ArgusMixinPlugin",
+  "compatibilityLevel": "JAVA_21",
+  "mixinextras": {
+    "minVersion": "0.5.0"
+  },
+  "client": [
+    "GameRendererMixin",
+    "WorldRendererMixin",
+    "GuiRendererMixin",
+    "MinecraftClientMixin",
+    "EntityHitboxDebugRendererMixin",
+    "sodium.SodiumWorldRendererMixin",
+    "CameraAccessor",
+    "GameOptionsAccessor",
+    "GameRendererAccessor",
+    "HeldItemRendererAccessor",
+    "PersistentProjectileAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
