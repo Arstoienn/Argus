@@ -131,10 +131,15 @@ Render distance is the largest saving on the GPU. The budget is what protects th
 | Option | Default |
 |---|---|
 | Interface on the second view | on |
+| Screens on the second view | on |
 | Show status text | on |
 | Show hitboxes | on |
 | Hold last frame when you leave | on |
 | Second window vsync | off |
+
+Screens on the second view off keeps the HUD on the second window but leaves the screens you open
+(the inventory, chat, the pause menu) and the drawn pointer off it, so a recording shows the game
+rather than your menus.
 
 Vsync on the second window is off by default because the buffer swap happens on the render thread,
 so turning it on makes that thread wait for the second window's vblank every frame and costs main
@@ -201,6 +206,12 @@ The game draws no cursor of its own — the pointer over the main window belongs
 system — so Argus draws one, as a small bitmap, along with the status text. Its position is the
 one the interface was drawn with that frame, so it sits on whatever the interface shows as
 hovered.
+
+The HUD and an open screen are built into one picture before anything is drawn, so a replay
+cannot leave the screen out. With Screens on the second view off, the HUD goes to the second view
+on its own instead: as soon as it is built and before the screen is added, it is drawn there, then
+built again for the main window, and the full replay is skipped. The HUD is therefore built twice
+on frames where a screen is open, and only then.
 
 The replay differs from the main window's interface in two ways. The second view is rendered at
 the main window's aspect ratio and stretched to fit, so the interface, and the cursor with it, is

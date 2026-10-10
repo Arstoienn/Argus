@@ -1,8 +1,10 @@
 package io.github.arstoienn.argus;
 
+import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.Framebuffer;
 import net.minecraft.client.gl.SimpleFramebuffer;
+import net.minecraft.client.gui.render.GuiRenderer;
 import net.minecraft.client.util.Window;
 
 /**
@@ -27,6 +29,8 @@ public final class SecondView {
     private static boolean worldEmpty;
     private static SimpleFramebuffer withInterface;
     private static boolean interfaceDrawn;
+    /** This frame's HUD already reached the second view on its own, without the open screen. */
+    private static boolean hudDrawnAlone;
     private static Cursor cursor;
 
     private SecondView() {
@@ -97,6 +101,34 @@ public final class SecondView {
             : null;
         interfaceDrawn = true;
         return withInterface;
+    }
+
+    /**
+     * For when screens are left off the second view: draws the HUD as built so far, before the open
+     * screen is added to it, onto the second view, without a pointer. GuiRenderer.render clears what
+     * it draws, so the caller builds the HUD again for the main window. False if nothing was drawn.
+     */
+    public static boolean drawHudAlone(GuiRenderer gui, GpuBufferSlice fog) {
+        Framebuffer target = beginInterface();
+        if (target == null) {
+            return false;
+        }
+        cursor = null;
+        redirect = target;
+        try {
+            gui.render(fog);
+        } finally {
+            redirect = null;
+        }
+        hudDrawnAlone = true;
+        return true;
+    }
+
+    /** True once if the HUD went to the second view alone this frame, so the full replay is skipped. */
+    public static boolean takeHudDrawnAlone() {
+        boolean drawn = hudDrawnAlone;
+        hudDrawnAlone = false;
+        return drawn;
     }
 
     /** This frame's world-plus-interface framebuffer, or null if none was drawn. Clears it. */

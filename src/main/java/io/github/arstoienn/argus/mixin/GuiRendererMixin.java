@@ -17,6 +17,9 @@ import org.spongepowered.asm.mixin.injection.At;
  * framebuffer redirected, gives the second view exactly what the main window got without running
  * any interface logic twice. Calling render again afterwards would not work: preparing adds text
  * and items back into the render state, so they would be drawn twice over.
+ *
+ * With screens left off the second view, the HUD has already been drawn there on its own (see
+ * GameRendererMixin), and this frame's full interface is not replayed.
  */
 @Mixin(GuiRenderer.class)
 public class GuiRendererMixin {
@@ -25,7 +28,7 @@ public class GuiRendererMixin {
         at = @At(value = "INVOKE", target = "Lnet/minecraft/client/gui/render/GuiRenderer;renderPreparedDraws(Lcom/mojang/blaze3d/buffers/GpuBufferSlice;)V"))
     private void argus$replayOnSecondView(GuiRenderer renderer, GpuBufferSlice fogBuffer, Operation<Void> original) {
         original.call(renderer, fogBuffer);
-        if (SecondView.redirect != null || !SecondView.wantsInterface()) {
+        if (SecondView.redirect != null || SecondView.takeHudDrawnAlone() || !SecondView.wantsInterface()) {
             return;
         }
         Framebuffer target = SecondView.beginInterface();
